@@ -10,37 +10,26 @@ services:
       LIGHTDASH_DB_TYPE: postgres
       LIGHTDASH_DB_HOST: postgres
       LIGHTDASH_DB_PORT: 5432
-      LIGHTDASH_DB_NAME: lightdash
-      LIGHTDASH_DB_USER: lightdash
-      LIGHTDASH_DB_PASSWORD: lightdash_password
+      LIGHTDASH_DB_NAME: ${POSTGRES_DB}
+      LIGHTDASH_DB_USER: ${LIGHTDASH_POSTGRES_USER}
+      LIGHTDASH_DB_PASSWORD: ${LIGHTDASH_POSTGRES_PASSWORD}
     depends_on:
       - postgres
 
-  # PostgreSQL service
+  # PostgreSQL service 
   postgres:
     image: postgres:latest
     environment:
-      POSTGRES_DB: lightdash
-      POSTGRES_USER: lightdash
-      POSTGRES_PASSWORD: lightdash_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/postgres_entrypoint.sql:/docker-entrypoint-initdb.d/create_tables.sql
 
-  # Druid service (adjust image and configuration as needed)
-  druid:
-    image: apache/incubator-druid:latest
-    ports:
-      - "8081:8081"
-    volumes:
-      - druid_data:/opt/druid/var
-    environment:
-      DRUID_XMX: "-Xmx512m"
-      DRUID_XMS: "-Xms512m"
-      DRUID_MAXNEWSIZE: "-Xmn256m"
-      DRUID_HOSTNAME: druid
-      DRUID_PORT: 8081
 
   # Apache Airflow service
   airflow:
@@ -57,7 +46,20 @@ services:
     volumes:
       - airflow_data:/opt/airflow
 
+  # FastAPI service
+  fastapi:
+    build:
+      context: ./api/fastapi_app  # Path to your FastAPI app code
+    ports:
+      - "80:80"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      FASTAPI_DB_USER: ${FASTAPI_DB_USER}
+      FASTAPI_DB_PASSWORD: ${FASTAPI_DB_PASSWORD}
+      POSTGRES_HOST: postgres
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
-  druid_data:
   airflow_data:
